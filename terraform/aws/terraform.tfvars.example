@@ -1,0 +1,32 @@
+# terraform.tfvars.example
+# このファイルをコピーして terraform.tfvars を作成し、実際の値を入力してください
+# terraform.tfvars は .gitignore に含まれており、コミットされません
+
+# ─── プロジェクト設定 ───────────────────────────────────────────
+project    = "poc"
+env        = "dev"
+aws_region = "ap-northeast-1"
+
+# ─── S3 バックエンド ────────────────────────────────────────────
+# terraform init 前に S3 バケットと DynamoDB テーブルを手動で作成してください
+tfstate_bucket         = "your-tfstate-bucket-name"   # 変更必須
+tfstate_dynamodb_table = "terraform-lock"
+
+# ─── Aurora 認証情報 ────────────────────────────────────────────
+# 8文字以上、英数字と記号を含むパスワードを設定してください
+db_master_password = "CHANGE_ME_strong_password_123!"  # 変更必須
+
+# ─── HA VPN 設定 ─────────────────────────────────────────────────
+# 初回 apply 時: デフォルト値（0.0.0.0 / 0.0.0.1）のままにする
+# GCP apply 後: GCP VPN Gateway の外部 IP に更新して再 apply する
+# $ cd terraform/gcp && terraform output vpn_gateway_ip0
+# $ cd terraform/gcp && terraform output vpn_gateway_ip1
+gcp_vpn_gateway_ip0 = "0.0.0.0"   # GCP apply 後に更新
+gcp_vpn_gateway_ip1 = "0.0.0.1"   # GCP apply 後に更新
+
+# PSK は GCP 側と完全に同じ値を使用すること（4トンネル分）
+# 32文字以上のランダムな文字列を推奨: openssl rand -base64 32
+tunnel1_preshared_key = "CHANGE_ME_psk_tunnel1_random_string"  # 変更必須
+tunnel2_preshared_key = "CHANGE_ME_psk_tunnel2_random_string"  # 変更必須
+tunnel3_preshared_key = "CHANGE_ME_psk_tunnel3_random_string"  # 変更必須
+tunnel4_preshared_key = "CHANGE_ME_psk_tunnel4_random_string"  # 変更必須

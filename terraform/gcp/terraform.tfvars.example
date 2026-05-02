@@ -1,0 +1,33 @@
+# terraform.tfvars.example
+# このファイルをコピーして terraform.tfvars を作成し、実際の値を入力してください
+# terraform.tfvars は .gitignore に含まれており、コミットされません
+
+# ─── プロジェクト設定 ───────────────────────────────────────────
+project        = "poc"
+env            = "dev"
+gcp_project_id = "your-gcp-project-id"  # 変更必須
+region         = "us-central1"
+
+# ─── S3 バックエンド（AWS 側と同じバケットを使用）─────────────────
+tfstate_bucket         = "your-tfstate-bucket-name"  # 変更必須（AWS 側と同じ値）
+tfstate_dynamodb_table = "terraform-lock"
+
+# ─── Aurora 接続情報（AWS terraform output から取得）──────────────
+# $ cd terraform/aws && terraform output aurora_endpoint
+aurora_host        = "poc-dev-aurora.cluster-xxxx.ap-northeast-1.rds.amazonaws.com"  # 変更必須
+db_master_password = "CHANGE_ME_strong_password_123!"  # 変更必須（AWS 側と同じ値）
+
+# ─── HA VPN トンネルアドレス（AWS terraform output から取得）────────
+# $ cd terraform/aws && terraform output
+# 初回 GCP apply 前: AWS apply を先に実行してトンネルアドレスを取得すること
+
+aws_tunnel0_tunnel1_address = "1.2.3.4"    # 変更必須: AWS output tunnel0_tunnel1_address
+aws_tunnel0_tunnel2_address = "1.2.3.5"    # 変更必須: AWS output tunnel0_tunnel2_address
+aws_tunnel1_tunnel1_address = "1.2.3.6"    # 変更必須: AWS output tunnel1_tunnel1_address
+aws_tunnel1_tunnel2_address = "1.2.3.7"    # 変更必須: AWS output tunnel1_tunnel2_address
+
+# ─── VPN PSK（AWS 側と完全に同じ値を設定すること）──────────────────
+tunnel1_preshared_key = "CHANGE_ME_psk_tunnel1_random_string"  # 変更必須
+tunnel2_preshared_key = "CHANGE_ME_psk_tunnel2_random_string"  # 変更必須
+tunnel3_preshared_key = "CHANGE_ME_psk_tunnel3_random_string"  # 変更必須
+tunnel4_preshared_key = "CHANGE_ME_psk_tunnel4_random_string"  # 変更必須

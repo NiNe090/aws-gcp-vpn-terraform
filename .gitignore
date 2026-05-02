@@ -1,0 +1,52 @@
+# ─── Terraform ──────────────────────────────────────────────────
+# 実値が入る tfvars はコミット禁止
+*.tfvars
+*.tfvars.json
+
+# Terraform 作業ディレクトリ（プロバイダーバイナリ等）
+**/.terraform/
+
+# State ファイル（S3 バックエンドで管理するためローカルは不要）
+*.tfstate
+*.tfstate.backup
+
+# Plan ファイル（認証情報が含まれる可能性あり）
+*.tfplan
+
+# crash log
+crash.log
+crash.*.log
+
+# .terraform.lock.hcl はコミット対象（依存関係を固定するため）
+# !.terraform.lock.hcl  ← 明示的に除外しない（デフォルトで追跡対象）
+
+# ─── Go ─────────────────────────────────────────────────────────
+# バイナリ
+/app/bin/
+/app/*.exe
+
+# テストキャッシュ
+/app/coverage/
+
+# ─── OS / Editor ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── AI ツール内部ファイル（公開リポジトリには不要）────────────────
+.agents/
+.claude/
+.kiro/
+.steering/
+skills-lock.json
+
+# ─── 内部ドキュメント（公開リポジトリには不要）──────────────────────
+docs/
