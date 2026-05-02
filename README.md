@@ -53,6 +53,7 @@ Step 6: AWS 側 ── ルートテーブルに VPN の経路を伝播させる
 最初に、AWS 側の VPN の「出入口」を作ります。「仮想プライベートゲートウェイ（VGW）」と呼ばれるリソースで、VPC にアタッチします。
 
 ```hcl
+# terraform/aws/modules/vpn/main.tf
 resource "aws_vpn_gateway" "main" {
   vpc_id          = var.vpc_id
   amazon_side_asn = 64512  # ← BGP の AS 番号（Step 5 で詳しく説明）
@@ -68,6 +69,7 @@ resource "aws_vpn_gateway" "main" {
 次に、GCP 側の VPN の「出入口」を作ります。GCP では「HA VPN Gateway」を使います。
 
 ```hcl
+# terraform/gcp/modules/vpn/main.tf
 resource "google_compute_ha_vpn_gateway" "main" {
   name    = "poc-dev-ha-vpn-gw"
   network = var.network_self_link  # アタッチ先の VPC
@@ -96,6 +98,7 @@ GCP の外部 IP が確定したので、AWS 側に「相手先（GCP）の情�
 AWS では「Customer Gateway」というリソースで、接続相手の情報を登録します。GCP の HA VPN は IP を 2 つ持つので、CGW も 2 つ作ります。
 
 ```hcl
+# terraform/aws/modules/vpn/main.tf
 # GCP interface0 に対応する CGW
 resource "aws_customer_gateway" "gcp_interface0" {
   bgp_asn    = 65534                    # ← GCP 側の ASN（Step 5 で詳しく説明）
@@ -118,6 +121,7 @@ resource "aws_customer_gateway" "gcp_interface1" {
 Customer Gateway（相手の情報）と VPN Gateway（自分の出入口）を紐づけて、VPN Connection を作ります。これがトンネルの実体です。
 
 ```hcl
+# terraform/aws/modules/vpn/main.tf
 resource "aws_vpn_connection" "tunnel0" {
   vpn_gateway_id      = aws_vpn_gateway.main.id                    # Step 1 で作った VGW
   customer_gateway_id = aws_customer_gateway.gcp_interface0[0].id  # 上で作った CGW
@@ -181,6 +185,7 @@ AWS のトンネル用 IP が 4 つ確定したので、GCP 側に「相手先�
 GCP では「External VPN Gateway」で、接続相手（AWS）のトンネル用 IP を登録します。
 
 ```hcl
+# terraform/gcp/modules/vpn/main.tf
 resource "google_compute_external_vpn_gateway" "aws" {
   name            = "poc-dev-aws-vpn-gw"
   redundancy_type = "FOUR_IPS_REDUNDANCY"
@@ -210,6 +215,7 @@ resource "google_compute_external_vpn_gateway" "aws" {
 GCP の 2 つのインターフェースと AWS の 4 つのトンネルアドレスを組み合わせて、4 本のトンネルを張ります。
 
 ```hcl
+# terraform/gcp/modules/vpn/main.tf
 resource "google_compute_vpn_tunnel" "tunnel1" {
   name                            = "poc-dev-tunnel1"
   vpn_gateway                     = google_compute_ha_vpn_gateway.main.id       # Step 2 の GW
@@ -265,6 +271,7 @@ ASN はプライベート範囲（64512〜65534）から選びます。**AWS と
 GCP では Cloud Router が BGP を担当します。
 
 ```hcl
+# terraform/gcp/modules/vpn/main.tf
 resource "google_compute_router" "main" {
   name    = "poc-dev-router"
   network = var.network_self_link  # VPC にアタッチ
@@ -293,6 +300,7 @@ BGP セッションを張るには、トンネルの「内側」で使う専用�
 この inside CIDR は、Step 3 で AWS の VPN Connection を作った時に各トンネルに自動的に割り当てられます。その値を GCP 側に渡して、Cloud Router の Interface と BGP Peer に設定します。
 
 ```hcl
+# terraform/gcp/modules/vpn/main.tf
 # Cloud Router のインターフェース（GCP 側の inside IP を設定）
 resource "google_compute_router_interface" "tunnel1" {
   vpn_tunnel = google_compute_vpn_tunnel.tunnel1[0].name
@@ -335,6 +343,7 @@ GCP 側は Cloud Router が BGP で受け取った経路を VPC のルーティ�
 一方、AWS 側は「VPN Gateway Route Propagation」を明示的に有効にする必要があります。これを設定すると、BGP で受け取った経路がルートテーブルに自動追加されます。
 
 ```hcl
+# terraform/aws/modules/vpc/main.tf
 resource "aws_vpn_gateway_route_propagation" "private" {
   vpn_gateway_id = aws_vpn_gateway.main.id      # Step 1 の VGW
   route_table_id = aws_route_table.private.id    # Aurora があるプライベートサブネットのルートテーブル
@@ -408,6 +417,7 @@ Aurora Serverless v2 (MySQL 8.0)
 ### count による条件付き作成
 
 ```hcl
+# terraform/aws/modules/vpn/main.tf
 # AWS 側: GCP の IP が 0.0.0.0（デフォルト = 未確定）の間は作らない
 locals {
   vpn_ready = var.gcp_vpn_gateway_ip0 != "0.0.0.0"
@@ -417,6 +427,7 @@ resource "aws_customer_gateway" "gcp_interface0" {
   # ...
 }
 
+# terraform/gcp/modules/vpn/main.tf
 # GCP 側: AWS のアドレスが空（デフォルト = 未確定）の間は作らない
 locals {
   tunnels_ready = var.aws_tunnel0_tunnel1_address != ""
